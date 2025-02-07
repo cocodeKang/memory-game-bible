@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>이미지-텍스트 짝맞추기 (4x4) - 순위 기록</title>
+  <title>이미지-텍스트 짝맞추기 (4x4) - 성경관련</title>
   <style>
     /* 기본 레이아웃 및 스타일 */
     body {
@@ -75,7 +75,7 @@
       object-fit: cover;
       border-radius: 5px;
     }
-    /* 안내(Instruction) 오버레이 스타일 */
+    /* 안내(Instruction) 및 순위(Leaderboard) 오버레이 스타일 */
     #instructionOverlay, #rankingOverlay {
       position: fixed;
       top: 0;
@@ -145,12 +145,14 @@
     </div>
   </div>
 
-  <!-- 순위(Leaderboard) 오버레이: 게임 종료 후 기록 표시 -->
+  <!-- 순위(Leaderboard) 오버레이: 게임 종료 후 기록 표시 및 관리자 기능 -->
   <div id="rankingOverlay" style="display:none;">
     <div class="ranking-content">
       <h2>순위</h2>
       <ul id="rankingList"></ul>
       <button id="restartButton">다시 시작하기</button>
+      <!-- 관리자용 순위 초기화 버튼 -->
+      <button id="resetRankingButton">순위 데이터 초기화</button>
     </div>
   </div>
 
@@ -174,6 +176,7 @@
 
       const startButton = document.getElementById('startButton');
       const restartButton = document.getElementById('restartButton');
+      const resetRankingButton = document.getElementById('resetRankingButton');
       const timerDisplay = document.getElementById('timer');
       const memoryGame = document.getElementById('memoryGame');
       const instructionOverlay = document.getElementById('instructionOverlay');
@@ -228,10 +231,9 @@
           return;
         }
         currentPlayerName = name;
-        // 안내 화면 숨기기
         instructionOverlay.style.display = 'none';
 
-        // 배경음악 시작 (사용자 인터랙션 후에 play()가 가능)
+        // 배경음악 시작 (사용자 인터랙션 후 play() 호출)
         bgmAudio.play();
 
         // 게임 관련 변수 초기화
@@ -290,7 +292,6 @@
         if (lockBoard) return;
         if (this === firstCard) return;
 
-        // 카드 뒤집기 시 flip 효과음 재생
         flipSound.currentTime = 0;
         flipSound.play();
 
@@ -309,7 +310,6 @@
 
       // 두 카드의 매치 여부 확인
       function checkForMatch() {
-        // 매치 조건: 같은 id이면서 타입이 다른 경우 (이미지와 텍스트(이미지) 카드)
         const isMatch = firstCard.dataset.id === secondCard.dataset.id &&
                         firstCard.dataset.type !== secondCard.dataset.type;
         if (isMatch) {
@@ -331,7 +331,7 @@
         if (matchedPairs === pairs.length) {
           clearInterval(timerInterval);
           setTimeout(() => {
-            // 게임 종료 후 플레이어 기록 저장 및 순위 표시
+            // 게임 종료 후 기록 저장 및 순위 표시
             const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
             storeRecord(currentPlayerName, elapsedTime);
             displayRanking();
@@ -340,7 +340,7 @@
         resetBoard();
       }
 
-      // 매치되지 않은 카드 다시 뒤집기
+      // 매치 실패한 카드 뒤집기
       function unflipCards() {
         setTimeout(() => {
           firstCard.classList.remove('flip');
@@ -360,7 +360,6 @@
         const record = { name, time };
         let records = JSON.parse(localStorage.getItem('memoryGameRecords')) || [];
         records.push(record);
-        // 시간(낮은 시간이 좋은 순)으로 정렬
         records.sort((a, b) => a.time - b.time);
         localStorage.setItem('memoryGameRecords', JSON.stringify(records));
       }
@@ -374,10 +373,8 @@
           li.textContent = `${index + 1}위: ${rec.name} - ${rec.time}초`;
           rankingList.appendChild(li);
         });
-        // 게임판 및 타이머 초기화
         memoryGame.innerHTML = '';
         timerDisplay.textContent = "0초";
-        // 순위 오버레이 표시
         rankingOverlay.style.display = 'flex';
       }
 
@@ -386,6 +383,14 @@
         rankingOverlay.style.display = 'none';
         instructionOverlay.style.display = 'flex';
         playerNameInput.value = "";
+      });
+
+      // 관리자용: 순위 데이터 초기화 버튼 이벤트
+      resetRankingButton.addEventListener('click', () => {
+        if (confirm("정말로 순위 데이터를 초기화하시겠습니까?")) {
+          localStorage.removeItem('memoryGameRecords');
+          displayRanking();
+        }
       });
     });
   </script>
