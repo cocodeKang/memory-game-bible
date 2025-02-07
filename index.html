@@ -112,8 +112,8 @@
       <!-- 안내 이미지 (예시 이미지 URL, 필요에 따라 변경) -->
       <img src="https://via.placeholder.com/200" alt="게임 설명 이미지">
       <p>
-        이 게임은 이미지와 텍스트 카드를 짝지어 맞추는 게임입니다.<br>
-        반드시 이미지 카드와 텍스트 카드를 찾아 매치해야 하며,<br>
+        이 게임은 이미지와 텍스트(이미지) 카드를 짝지어 맞추는 게임입니다.<br>
+        반드시 이미지 카드와 텍스트(이미지) 카드를 찾아 매치해야 하며,<br>
         이미지와 이미지 카드를 매치하는 것은 올바른 매치가 아닙니다.
       </p>
       <button id="startButton">게임 시작</button>
@@ -150,27 +150,26 @@
       let firstCard, secondCard;
 
       /* 
-        각 쌍은 한 장의 이미지 카드와 한 장의 텍스트 카드로 구성됩니다.
-        아래 배열은 예시로 아이콘과 관련 텍스트를 사용합니다.
-        "id": 쌍을 식별하는 값,
-        "img": 이미지 카드에 사용할 URL,
-        "text": 텍스트 카드에 표시할 내용.
+        각 쌍은 한 장의 이미지 카드와 한 장의 텍스트(이미지) 카드로 구성됩니다.
+        아래 배열은 예시로 아이콘과 관련 텍스트를 사용하던 데이터를 텍스트 대신 이미지 파일로 대체합니다.
       */
       const pairs = [
-      { id: 0, img: "https://cdn-icons-png.flaticon.com/512/1197/1197953.png", text: "text (1).png" },
-      { id: 1, img: "https://cdn-icons-png.flaticon.com/512/67/67343.png", text: "text (2).png" },
-      { id: 2, img: "https://cdn-icons-png.flaticon.com/512/1663/1663169.png", text: "text (3).png" },
-      { id: 3, img: "https://cdn-icons-png.flaticon.com/512/4313/4313662.png", text: "text (4).png" },
-      { id: 4, img: "https://cdn-icons-png.flaticon.com/512/4193/4193842.png", text: "text (5).png" },
-      { id: 5, img: "https://previews.123rf.com/images/ronwheeler/ronwheeler1906/ronwheeler190600124/126584244-%EB%8B%A4%EC%9C%97%EA%B3%A8%EB%A6%AC%EC%95%97.jpg", text: "text (6).png" },
-      { id: 6, img: "https://img.freepik.com/free-vector/flat-design-illustration-ascension-day-with-jesus_23-2148545878.jpg", text: "text (7).png" },
-      { id: 7, img: "https://cdn-icons-png.flaticon.com/512/3760/3760001.png", text: "text (8).png" }
-    ];
+        { id: 0, img: "https://cdn-icons-png.flaticon.com/512/1197/1197953.png", text: "text (1).png" },
+        { id: 1, img: "https://cdn-icons-png.flaticon.com/512/67/67343.png", text: "text (2).png" },
+        { id: 2, img: "https://cdn-icons-png.flaticon.com/512/1663/1663169.png", text: "text (3).png" },
+        { id: 3, img: "https://cdn-icons-png.flaticon.com/512/4313/4313662.png", text: "text (4).png" },
+        { id: 4, img: "https://cdn-icons-png.flaticon.com/512/4193/4193842.png", text: "text (5).png" },
+        { id: 5, img: "https://previews.123rf.com/images/ronwheeler/ronwheeler1906/ronwheeler190600124/126584244-%EB%8B%A4%EC%9C%97%EA%B3%A8%EB%A6%AC%EC%95%97.jpg", text: "text (6).png" },
+        { id: 6, img: "https://img.freepik.com/free-vector/flat-design-illustration-ascension-day-with-jesus_23-2148545878.jpg", text: "text (7).png" },
+        { id: 7, img: "https://cdn-icons-png.flaticon.com/512/3760/3760001.png", text: "text (8).png" }
+      ];
 
-      // 각 쌍에서 이미지 카드와 텍스트 카드를 각각 생성하여 카드 배열에 추가
+      // 각 쌍에서 카드 배열 생성: 이미지 카드와 텍스트(이미지) 카드
       let cardsArray = [];
       pairs.forEach(pair => {
+        // 이미지 카드
         cardsArray.push({ id: pair.id, type: 'image', content: pair.img });
+        // 텍스트(이미지) 카드
         cardsArray.push({ id: pair.id, type: 'text', content: pair.text });
       });
 
@@ -179,14 +178,14 @@
         array.sort(() => 0.5 - Math.random());
       }
 
-      // 게임 시작
+      // 게임 시작 이벤트 연결
       startButton.addEventListener('click', startGame);
 
       function startGame() {
         // 안내 화면 숨기기
         document.getElementById('instructionOverlay').style.display = 'none';
 
-        // 배경음악 시작 (사용자의 인터랙션 후에 play()가 가능)
+        // 배경음악 시작 (사용자 인터랙션 이후에 play()가 가능)
         bgmAudio.play();
 
         // 게임 관련 변수 초기화
@@ -214,19 +213,24 @@
           cardElement.dataset.id = card.id;
           cardElement.dataset.type = card.type;
 
-          // 앞면: 카드 내용 (이미지 또는 텍스트)
           const frontFace = document.createElement('div');
           frontFace.classList.add('front-face');
+
+          // 카드 타입에 따라 이미지 생성
           if (card.type === 'image') {
             const img = document.createElement('img');
             img.src = card.content;
             img.alt = "이미지 카드";
             frontFace.appendChild(img);
           } else {
-            frontFace.textContent = card.content;
+            // 텍스트(이미지) 카드도 이미지로 표시
+            const img = document.createElement('img');
+            img.src = card.content;
+            img.alt = "텍스트 카드";
+            frontFace.appendChild(img);
           }
 
-          // 뒷면: 공통 디자인 ("?")
+          // 뒷면 설정 (공통 디자인)
           const backFace = document.createElement('div');
           backFace.classList.add('back-face');
           backFace.textContent = "?";
@@ -235,7 +239,6 @@
           cardElement.appendChild(backFace);
           memoryGame.appendChild(cardElement);
 
-          // 카드 클릭 이벤트 연결
           cardElement.addEventListener('click', flipCard);
         });
       }
@@ -251,7 +254,7 @@
         if (lockBoard) return;
         if (this === firstCard) return;
 
-        // 카드 뒤집을 때 flip 효과음 재생
+        // 카드 뒤집기 시 flip 효과음 재생
         flipSound.currentTime = 0;
         flipSound.play();
 
@@ -270,7 +273,7 @@
 
       // 두 카드의 매치 여부 확인
       function checkForMatch() {
-        // 매치 조건: 같은 pair id이면서 한 카드는 이미지, 다른 카드는 텍스트여야 함
+        // 매치 조건: 같은 id이면서 타입이 다른 경우 (이미지와 텍스트(이미지) 카드)
         const isMatch = firstCard.dataset.id === secondCard.dataset.id &&
                         firstCard.dataset.type !== secondCard.dataset.type;
         if (isMatch) {
