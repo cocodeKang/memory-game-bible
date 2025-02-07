@@ -31,18 +31,24 @@
     }
     /* 게임판: 4열 x 4행 (총 16장, 8쌍) */
     .memory-game {
-  width: 90vw; /* 화면 너비의 90% */
-  max-width: 640px; /* 최대 너비 640px */
-  height: auto; /* 자동 높이 조절 */
-  aspect-ratio: 1/1; /* 정사각형 유지 */
+  width: 90vw; /* 전체 화면 너비의 90% */
+  max-width: 640px; /* 최대 크기 제한 */
+  height: auto; /* 자동 조정 */
+  aspect-ratio: 1/1; /* 가로 세로 비율 유지 */
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 2vw; /* 화면 크기에 따라 자동 조정 */
+  grid-template-rows: repeat(4, 1fr);
+  gap: 2vw; /* 카드 간격 자동 조절 */
 }
 
-   .memory-card {
-  width: 100%; 
-  height: 100%;
+
+  .memory-card {
+  display: flex;
+  align-items: center; /* 카드 내용 수직 중앙 정렬 */
+  justify-content: center; /* 카드 내용 가로 중앙 정렬 */
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1/1; /* 정사각형 유지 */
 }
 
     /* 카드 뒤집힘 상태 */
