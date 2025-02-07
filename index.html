@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>이미지-텍스트 짝맞추기 (4x4)</title>
+  <style>
+    /* 기본 레이아웃 및 스타일 */
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #2c3e50;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      color: #ecf0f1;
+    }
+    #controls {
+      margin: 20px 0;
+      text-align: center;
+    }
+    #startButton {
+      padding: 10px 20px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    #timer {
+      font-size: 1.5rem;
+      margin-top: 10px;
+    }
+    /* 게임판: 4열 x 4행 (총 16장, 8쌍) */
+    .memory-game {
+      width: 640px;
+      height: 640px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+    .memory-card {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transform: scale(1);
+      transform-style: preserve-3d;
+      transition: transform 0.5s;
+      cursor: pointer;
+    }
+    /* 카드 뒤집힘 상태 */
+    .memory-card.flip {
+      transform: rotateY(180deg);
+    }
+    /* 카드 앞면과 뒷면 */
+    .front-face, .back-face {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 5px;
+      backface-visibility: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-sizing: border-box;
+    }
+    .front-face {
+      background-color: #fff;
+      color: #333;
+      transform: rotateY(180deg);
+      padding: 5px;
+    }
+    .back-face {
+      background-color: #ecf0f1;
+      color: #34495e;
+      font-size: 2rem;
+    }
+    /* 이미지 카드 내용 */
+    .front-face img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: cover;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+  <!-- 게임 컨트롤: 시작 버튼과 타이머 -->
+  <div id="controls">
+    <button id="startButton">게임 시작</button>
+    <div id="timer">0초</div>
+  </div>
+  
+  <!-- 메모리 게임 보드 -->
+  <div class="memory-game" id="memoryGame"></div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const startButton = document.getElementById('startButton');
+      const timerDisplay = document.getElementById('timer');
+      const memoryGame = document.getElementById('memoryGame');
+
+      let timerInterval;
+      let startTime;
+      let matchedPairs = 0;
+      let hasFlippedCard = false;
+      let lockBoard = false;
+      let firstCard, secondCard;
+      const numPairs = 8; // 8쌍, 총 16장
+
+      /* 
+        각 쌍은 한 장의 이미지 카드와 한 장의 텍스트 카드로 구성됩니다.
+        아래 배열은 예시로 아이콘과 관련 텍스트를 사용합니다.
+        "id": 쌍을 식별하는 값,
+        "img": 이미지 카드에 사용할 URL,
+        "text": 텍스트 카드에 표시할 내용.
+      */
+      const pairs = [
+        { id: 0, img: "https://cdn-icons-png.flaticon.com/512/1197/1197953.png", text: "예수님" },
+        { id: 1, img: "https://cdn-icons-png.flaticon.com/512/67/67343.png", text: "십자가" },
+        { id: 2, img: "https://cdn-icons-png.flaticon.com/512/1663/1663169.png", text: "성경" },
+        { id: 3, img: "https://cdn-icons-png.flaticon.com/512/4313/4313662.png", text: "부활" },
+        { id: 4, img: "https://cdn-icons-png.flaticon.com/512/4193/4193842.png", text: "방주" },
+        { id: 5, img: "https://previews.123rf.com/images/ronwheeler/ronwheeler1906/ronwheeler190600124/126584244-%EB%8B%A4%EC%9C%97%EA%B3%BC-%EA%B3%A8%EB%A6%AC%EC%95%97.jpg", text: "다윗과 골리앗" },
+        { id: 6, img: "https://img.freepik.com/free-vector/flat-design-illustration-ascension-day-with-jesus_23-2148545878.jpg", text: "승천" },
+        { id: 7, img: "https://cdn-icons-png.flaticon.com/512/3760/3760001.png", text: "크리스마스" }
+      ];
+
+      // 각 쌍에서 이미지 카드와 텍스트 카드를 각각 생성하여 카드 배열에 추가
+      let cardsArray = [];
+      pairs.forEach(pair => {
+        cardsArray.push({ id: pair.id, type: 'image', content: pair.img });
+        cardsArray.push({ id: pair.id, type: 'text', content: pair.text });
+      });
+
+      // 배열을 섞는 함수
+      function shuffle(array) {
+        array.sort(() => 0.5 - Math.random());
+      }
+
+      // 게임 시작
+      startButton.addEventListener('click', startGame);
+
+      function startGame() {
+        startButton.disabled = true;
+        memoryGame.innerHTML = '';
+        matchedPairs = 0;
+        hasFlippedCard = false;
+        lockBoard = false;
+        firstCard = null;
+        secondCard = null;
+
+        // 타이머 초기화
+        startTime = Date.now();
+        timerInterval = setInterval(updateTimer, 1000);
+        updateTimer();
+
+        // 카드 배열 섞기
+        shuffle(cardsArray);
+
+        // 카드 요소 생성 및 게임판 추가
+        cardsArray.forEach(card => {
+          const cardElement = document.createElement('div');
+          cardElement.classList.add('memory-card');
+          cardElement.dataset.id = card.id;
+          cardElement.dataset.type = card.type;
+
+          // 앞면: 카드 내용 (이미지 또는 텍스트)
+          const frontFace = document.createElement('div');
+          frontFace.classList.add('front-face');
+          if (card.type === 'image') {
+            const img = document.createElement('img');
+            img.src = card.content;
+            img.alt = "이미지 카드";
+            frontFace.appendChild(img);
+          } else {
+            frontFace.textContent = card.content;
+          }
+
+          // 뒷면: 공통 디자인 ("?")
+          const backFace = document.createElement('div');
+          backFace.classList.add('back-face');
+          backFace.textContent = "?";
+
+          cardElement.appendChild(frontFace);
+          cardElement.appendChild(backFace);
+          memoryGame.appendChild(cardElement);
+
+          // 카드 클릭 이벤트 연결
+          cardElement.addEventListener('click', flipCard);
+        });
+      }
+
+      // 타이머 업데이트 함수 (초 단위)
+      function updateTimer() {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        timerDisplay.textContent = elapsed + "초";
+      }
+
+      // 카드 클릭 시 동작
+      function flipCard() {
+        if (lockBoard) return;
+        if (this === firstCard) return;
+
+        this.classList.add('flip');
+
+        if (!hasFlippedCard) {
+          hasFlippedCard = true;
+          firstCard = this;
+          return;
+        }
+
+        secondCard = this;
+        lockBoard = true;
+        checkForMatch();
+      }
+
+      // 두 카드가 매치되는지 확인
+      function checkForMatch() {
+        // 매치 조건: 같은 pair id이면서 한 카드는 image, 다른 카드는 text여야 함
+        const isMatch = firstCard.dataset.id === secondCard.dataset.id &&
+                        firstCard.dataset.type !== secondCard.dataset.type;
+        if (isMatch) {
+          disableCards();
+        } else {
+          unflipCards();
+        }
+      }
+
+      // 매치된 카드의 클릭 이벤트 제거 및 게임 종료 여부 확인
+      function disableCards() {
+        firstCard.removeEventListener('click', flipCard);
+        secondCard.removeEventListener('click', flipCard);
+        matchedPairs++;
+        if (matchedPairs === pairs.length) {
+          clearInterval(timerInterval);
+          setTimeout(() => {
+            alert("축하합니다! 게임을 완료했습니다. 걸린 시간: " + Math.floor((Date.now() - startTime) / 1000) + "초");
+            startButton.disabled = false;
+          }, 500);
+        }
+        resetBoard();
+      }
+
+      // 매치되지 않은 카드 뒤집기
+      function unflipCards() {
+        setTimeout(() => {
+          firstCard.classList.remove('flip');
+          secondCard.classList.remove('flip');
+          resetBoard();
+        }, 1000);
+      }
+
+      // 보드 상태 초기화
+      function resetBoard() {
+        [hasFlippedCard, lockBoard] = [false, false];
+        [firstCard, secondCard] = [null, null];
+      }
+    });
+  </script>
+</body>
+</html>
