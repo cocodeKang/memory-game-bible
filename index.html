@@ -20,11 +20,6 @@
       margin: 20px 0;
       text-align: center;
     }
-    #startButton {
-      padding: 10px 20px;
-      font-size: 1rem;
-      cursor: pointer;
-    }
     #timer {
       font-size: 1.5rem;
       margin-top: 10px;
@@ -80,12 +75,53 @@
       object-fit: cover;
       border-radius: 5px;
     }
+    /* 안내(Instruction) 화면 스타일 */
+    #instructionOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(44, 62, 80, 0.95);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    #instructionOverlay .instruction-content {
+      text-align: center;
+      padding: 20px;
+      background-color: #34495e;
+      border-radius: 10px;
+    }
+    #instructionOverlay img {
+      max-width: 200px;
+      margin-bottom: 20px;
+    }
+    #instructionOverlay button {
+      padding: 10px 20px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
-  <!-- 게임 컨트롤: 시작 버튼과 타이머 -->
+  <!-- 안내(Instruction) 오버레이: 게임 시작 전 설명 화면 -->
+  <div id="instructionOverlay">
+    <div class="instruction-content">
+      <!-- 안내 이미지 (예시 이미지 URL, 필요에 따라 변경) -->
+      <img src="https://via.placeholder.com/200" alt="게임 설명 이미지">
+      <p>
+        이 게임은 이미지와 텍스트 카드를 짝지어 맞추는 게임입니다.<br>
+        반드시 이미지 카드와 텍스트 카드를 찾아 매치해야 하며,<br>
+        이미지와 이미지 카드를 매치하는 것은 올바른 매치가 아닙니다.
+      </p>
+      <button id="startButton">게임 시작</button>
+    </div>
+  </div>
+
+  <!-- 게임 컨트롤: 타이머 -->
   <div id="controls">
-    <button id="startButton">게임 시작</button>
     <div id="timer">0초</div>
   </div>
   
@@ -94,6 +130,14 @@
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
+      // 효과음 및 배경음 오디오 객체 생성
+      const bgmAudio = new Audio("backbgm.mp3");
+      bgmAudio.loop = true;  // 배경음 반복 재생
+
+      const flipSound = new Audio("flip.mp3");
+      const matchSound = new Audio("match.mp3");
+      const mismatchSound = new Audio("missmatch.mp3");
+
       const startButton = document.getElementById('startButton');
       const timerDisplay = document.getElementById('timer');
       const memoryGame = document.getElementById('memoryGame');
@@ -104,7 +148,6 @@
       let hasFlippedCard = false;
       let lockBoard = false;
       let firstCard, secondCard;
-      const numPairs = 8; // 8쌍, 총 16장
 
       /* 
         각 쌍은 한 장의 이미지 카드와 한 장의 텍스트 카드로 구성됩니다.
@@ -131,7 +174,7 @@
         cardsArray.push({ id: pair.id, type: 'text', content: pair.text });
       });
 
-      // 배열을 섞는 함수
+      // 배열 섞기 함수
       function shuffle(array) {
         array.sort(() => 0.5 - Math.random());
       }
@@ -140,8 +183,13 @@
       startButton.addEventListener('click', startGame);
 
       function startGame() {
-        startButton.disabled = true;
-        memoryGame.innerHTML = '';
+        // 안내 화면 숨기기
+        document.getElementById('instructionOverlay').style.display = 'none';
+
+        // 배경음악 시작 (사용자의 인터랙션 후에 play()가 가능)
+        bgmAudio.play();
+
+        // 게임 관련 변수 초기화
         matchedPairs = 0;
         hasFlippedCard = false;
         lockBoard = false;
@@ -156,7 +204,10 @@
         // 카드 배열 섞기
         shuffle(cardsArray);
 
-        // 카드 요소 생성 및 게임판 추가
+        // 게임판 초기화
+        memoryGame.innerHTML = '';
+
+        // 카드 요소 생성 및 게임판에 추가
         cardsArray.forEach(card => {
           const cardElement = document.createElement('div');
           cardElement.classList.add('memory-card');
@@ -200,6 +251,10 @@
         if (lockBoard) return;
         if (this === firstCard) return;
 
+        // 카드 뒤집을 때 flip 효과음 재생
+        flipSound.currentTime = 0;
+        flipSound.play();
+
         this.classList.add('flip');
 
         if (!hasFlippedCard) {
@@ -213,14 +268,20 @@
         checkForMatch();
       }
 
-      // 두 카드가 매치되는지 확인
+      // 두 카드의 매치 여부 확인
       function checkForMatch() {
-        // 매치 조건: 같은 pair id이면서 한 카드는 image, 다른 카드는 text여야 함
+        // 매치 조건: 같은 pair id이면서 한 카드는 이미지, 다른 카드는 텍스트여야 함
         const isMatch = firstCard.dataset.id === secondCard.dataset.id &&
                         firstCard.dataset.type !== secondCard.dataset.type;
         if (isMatch) {
+          // 매치 성공 효과음 재생
+          matchSound.currentTime = 0;
+          matchSound.play();
           disableCards();
         } else {
+          // 매치 실패 효과음 재생
+          mismatchSound.currentTime = 0;
+          mismatchSound.play();
           unflipCards();
         }
       }
@@ -233,8 +294,8 @@
         if (matchedPairs === pairs.length) {
           clearInterval(timerInterval);
           setTimeout(() => {
-            alert("축하합니다! 게임을 완료했습니다. 걸린 시간: " + Math.floor((Date.now() - startTime) / 1000) + "초");
-            startButton.disabled = false;
+            alert("축하합니다! 게임을 완료했습니다. 걸린 시간: " +
+              Math.floor((Date.now() - startTime) / 1000) + "초");
           }, 500);
         }
         resetBoard();
