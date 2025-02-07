@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>이미지-텍스트 짝맞추기 (4x4)</title>
+  <title>이미지-텍스트 짝맞추기 (4x4) - 순위 기록</title>
   <style>
     /* 기본 레이아웃 및 스타일 */
     body {
@@ -75,8 +75,8 @@
       object-fit: cover;
       border-radius: 5px;
     }
-    /* 안내(Instruction) 화면 스타일 */
-    #instructionOverlay {
+    /* 안내(Instruction) 오버레이 스타일 */
+    #instructionOverlay, #rankingOverlay {
       position: fixed;
       top: 0;
       left: 0;
@@ -87,36 +87,70 @@
       align-items: center;
       justify-content: center;
       z-index: 1000;
+      flex-direction: column;
     }
-    #instructionOverlay .instruction-content {
+    #instructionOverlay .instruction-content,
+    #rankingOverlay .ranking-content {
       text-align: center;
       padding: 20px;
       background-color: #34495e;
       border-radius: 10px;
+      max-width: 300px;
+      width: 90%;
     }
     #instructionOverlay img {
       max-width: 200px;
       margin-bottom: 20px;
     }
-    #instructionOverlay button {
+    #instructionOverlay button,
+    #rankingOverlay button {
       padding: 10px 20px;
       font-size: 1rem;
       cursor: pointer;
+      margin-top: 15px;
+    }
+    #instructionOverlay input {
+      padding: 8px;
+      font-size: 1rem;
+      margin-bottom: 10px;
+      width: 80%;
+    }
+    /* 순위 리스트 스타일 */
+    #rankingList {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      text-align: left;
+    }
+    #rankingList li {
+      margin: 5px 0;
+      background: #2c3e50;
+      padding: 5px;
+      border-radius: 3px;
     }
   </style>
 </head>
 <body>
-  <!-- 안내(Instruction) 오버레이: 게임 시작 전 설명 화면 -->
+  <!-- 안내(Instruction) 오버레이: 게임 시작 전 설명 및 이름 입력 -->
   <div id="instructionOverlay">
     <div class="instruction-content">
-      <!-- 안내 이미지 (예시 이미지 URL, 필요에 따라 변경) -->
-      <img src="explain.gif" alt="게임 설명 이미지:)">
+      <img src="https://via.placeholder.com/200" alt="게임 설명 이미지">
       <p>
         이 게임은 이미지와 텍스트(이미지) 카드를 짝지어 맞추는 게임입니다.<br>
         반드시 이미지 카드와 텍스트(이미지) 카드를 찾아 매치해야 하며,<br>
         이미지와 이미지 카드를 매치하는 것은 올바른 매치가 아닙니다.
       </p>
+      <input type="text" id="playerName" placeholder="이름을 입력하세요">
       <button id="startButton">게임 시작</button>
+    </div>
+  </div>
+
+  <!-- 순위(Leaderboard) 오버레이: 게임 종료 후 기록 표시 -->
+  <div id="rankingOverlay" style="display:none;">
+    <div class="ranking-content">
+      <h2>순위</h2>
+      <ul id="rankingList"></ul>
+      <button id="restartButton">다시 시작하기</button>
     </div>
   </div>
 
@@ -139,8 +173,13 @@
       const mismatchSound = new Audio("missmatch.mp3");
 
       const startButton = document.getElementById('startButton');
+      const restartButton = document.getElementById('restartButton');
       const timerDisplay = document.getElementById('timer');
       const memoryGame = document.getElementById('memoryGame');
+      const instructionOverlay = document.getElementById('instructionOverlay');
+      const rankingOverlay = document.getElementById('rankingOverlay');
+      const rankingList = document.getElementById('rankingList');
+      const playerNameInput = document.getElementById('playerName');
 
       let timerInterval;
       let startTime;
@@ -148,10 +187,11 @@
       let hasFlippedCard = false;
       let lockBoard = false;
       let firstCard, secondCard;
+      let currentPlayerName = "";
 
       /* 
         각 쌍은 한 장의 이미지 카드와 한 장의 텍스트(이미지) 카드로 구성됩니다.
-        아래 배열은 예시로 아이콘과 관련 텍스트를 사용하던 데이터를 텍스트 대신 이미지 파일로 대체합니다.
+        아래 배열은 예시 데이터로, 텍스트 대신 이미지 파일 이름을 사용합니다.
       */
       const pairs = [
         { id: 0, img: "https://cdn-icons-png.flaticon.com/512/1197/1197953.png", text: "text (1).png" },
@@ -178,14 +218,20 @@
         array.sort(() => 0.5 - Math.random());
       }
 
-      // 게임 시작 이벤트 연결
+      // 게임 시작: 플레이어 이름 확인 후 게임 시작
       startButton.addEventListener('click', startGame);
 
       function startGame() {
+        const name = playerNameInput.value.trim();
+        if (!name) {
+          alert("게임을 시작하기 전에 이름을 입력해주세요.");
+          return;
+        }
+        currentPlayerName = name;
         // 안내 화면 숨기기
-        document.getElementById('instructionOverlay').style.display = 'none';
+        instructionOverlay.style.display = 'none';
 
-        // 배경음악 시작 (사용자 인터랙션 이후에 play()가 가능)
+        // 배경음악 시작 (사용자 인터랙션 후에 play()가 가능)
         bgmAudio.play();
 
         // 게임 관련 변수 초기화
@@ -194,8 +240,6 @@
         lockBoard = false;
         firstCard = null;
         secondCard = null;
-
-        // 타이머 초기화
         startTime = Date.now();
         timerInterval = setInterval(updateTimer, 1000);
         updateTimer();
@@ -217,18 +261,10 @@
           frontFace.classList.add('front-face');
 
           // 카드 타입에 따라 이미지 생성
-          if (card.type === 'image') {
-            const img = document.createElement('img');
-            img.src = card.content;
-            img.alt = "이미지 카드";
-            frontFace.appendChild(img);
-          } else {
-            // 텍스트(이미지) 카드도 이미지로 표시
-            const img = document.createElement('img');
-            img.src = card.content;
-            img.alt = "텍스트 카드";
-            frontFace.appendChild(img);
-          }
+          const img = document.createElement('img');
+          img.src = card.content;
+          img.alt = card.type === 'image' ? "이미지 카드" : "텍스트 카드";
+          frontFace.appendChild(img);
 
           // 뒷면 설정 (공통 디자인)
           const backFace = document.createElement('div');
@@ -243,7 +279,7 @@
         });
       }
 
-      // 타이머 업데이트 함수 (초 단위)
+      // 타이머 업데이트 (초 단위)
       function updateTimer() {
         const elapsed = Math.floor((Date.now() - startTime) / 1000);
         timerDisplay.textContent = elapsed + "초";
@@ -277,19 +313,17 @@
         const isMatch = firstCard.dataset.id === secondCard.dataset.id &&
                         firstCard.dataset.type !== secondCard.dataset.type;
         if (isMatch) {
-          // 매치 성공 효과음 재생
           matchSound.currentTime = 0;
           matchSound.play();
           disableCards();
         } else {
-          // 매치 실패 효과음 재생
           mismatchSound.currentTime = 0;
           mismatchSound.play();
           unflipCards();
         }
       }
 
-      // 매치된 카드의 클릭 이벤트 제거 및 게임 종료 여부 확인
+      // 매치된 카드의 이벤트 제거 및 게임 종료 확인
       function disableCards() {
         firstCard.removeEventListener('click', flipCard);
         secondCard.removeEventListener('click', flipCard);
@@ -297,14 +331,16 @@
         if (matchedPairs === pairs.length) {
           clearInterval(timerInterval);
           setTimeout(() => {
-            alert("축하합니다! 게임을 완료했습니다. 걸린 시간: " +
-              Math.floor((Date.now() - startTime) / 1000) + "초");
+            // 게임 종료 후 플레이어 기록 저장 및 순위 표시
+            const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+            storeRecord(currentPlayerName, elapsedTime);
+            displayRanking();
           }, 500);
         }
         resetBoard();
       }
 
-      // 매치되지 않은 카드 뒤집기
+      // 매치되지 않은 카드 다시 뒤집기
       function unflipCards() {
         setTimeout(() => {
           firstCard.classList.remove('flip');
@@ -318,6 +354,39 @@
         [hasFlippedCard, lockBoard] = [false, false];
         [firstCard, secondCard] = [null, null];
       }
+
+      // 기록 저장 (localStorage 사용)
+      function storeRecord(name, time) {
+        const record = { name, time };
+        let records = JSON.parse(localStorage.getItem('memoryGameRecords')) || [];
+        records.push(record);
+        // 시간(낮은 시간이 좋은 순)으로 정렬
+        records.sort((a, b) => a.time - b.time);
+        localStorage.setItem('memoryGameRecords', JSON.stringify(records));
+      }
+
+      // 순위(기록) 표시
+      function displayRanking() {
+        let records = JSON.parse(localStorage.getItem('memoryGameRecords')) || [];
+        rankingList.innerHTML = '';
+        records.forEach((rec, index) => {
+          const li = document.createElement('li');
+          li.textContent = `${index + 1}위: ${rec.name} - ${rec.time}초`;
+          rankingList.appendChild(li);
+        });
+        // 게임판 및 타이머 초기화
+        memoryGame.innerHTML = '';
+        timerDisplay.textContent = "0초";
+        // 순위 오버레이 표시
+        rankingOverlay.style.display = 'flex';
+      }
+
+      // 다시 시작하기 버튼: 순위 오버레이 숨기고 이름 입력 오버레이 노출
+      restartButton.addEventListener('click', () => {
+        rankingOverlay.style.display = 'none';
+        instructionOverlay.style.display = 'flex';
+        playerNameInput.value = "";
+      });
     });
   </script>
 </body>
