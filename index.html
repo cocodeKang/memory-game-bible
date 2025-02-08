@@ -1,12 +1,11 @@
-<!DOCTYPE html>
+!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-    <!-- 모바일 반응형 설정 -->
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-
+  <!-- 모바일 반응형 설정 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>이미지-텍스트 짝맞추기 (4x4) - 성경관련</title>
-   <!-- 웹 앱 매니페스트 -->
+  <!-- 웹 앱 매니페스트 -->
   <link rel="manifest" href="manifest.json">
   <style>
     /* 기본 레이아웃 및 스타일 */
@@ -30,28 +29,29 @@
       margin-top: 10px;
     }
     /* 게임판: 4열 x 4행 (총 16장, 8쌍) */
-     .memory-game {
-  width: min(90vw, 640px); /* 화면 너비의 90% 또는 최대 640px */
-  height: min(90vh, 640px); /* 화면 높이의 90% 또는 최대 640px */
-  max-width: 640px; /* 최대 너비 제한 */
-  max-height: 640px; /* 최대 높이 제한 */
-  margin: 0 auto; /* 화면 중앙 정렬 */
-  display: grid;
-  grid-template-columns: repeat(4, 1fr); /* 4열 */
-  grid-template-rows: repeat(4, 1fr); /* 4행 */
-  gap: 1vw; /* 카드 간격 */
-}
-.memory-card {
-  width: 100%;
-  height: 100%;
-  aspect-ratio: 1/1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative; /* 추가 */
-}
-
-
+    .memory-game {
+      width: min(90vw, 640px); /* 화면 너비의 90% 또는 최대 640px */
+      height: min(90vh, 640px); /* 화면 높이의 90% 또는 최대 640px */
+      max-width: 640px;
+      max-height: 640px;
+      margin: 0 auto; /* 화면 중앙 정렬 */
+      display: grid;
+      grid-template-columns: repeat(4, 1fr); /* 4열 */
+      grid-template-rows: repeat(4, 1fr); /* 4행 */
+      gap: 1vw; /* 카드 간격 */
+      perspective: 1000px; /* 3D 효과를 위한 원근감 */
+    }
+    .memory-card {
+      width: 100%;
+      height: 100%;
+      aspect-ratio: 1/1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative; /* 자식 요소 위치 조정을 위해 */
+      transform-style: preserve-3d; /* 자식 요소가 3D 공간에서 올바르게 보이도록 */
+      transition: transform 0.6s; /* 부드러운 회전 효과 */
+    }
     /* 카드 뒤집힘 상태 */
     .memory-card.flip {
       transform: rotateY(180deg);
